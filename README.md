@@ -1,6 +1,7 @@
 # Capstone: The Crazy Museum
 
-This is the Capstone project in the [Udacity C++ Nanodegree Program](https://www.udacity.com/course/c-plus-plus-nanodegree--nd213). I got the motivation from my vacation in Malaga, Spain when I entered the Pablo Picasso Museum there and thought about the power of creating art in parallel with the use of multi-threading.
+This is the Capstone project in the [Udacity C++ Nanodegree Program](https://www.udacity.com/course/c-plus-plus-nanodegree--nd213).  
+I got the motivation from my vacation in Malaga, Spain when I entered the Pablo Picasso Museum there and thought about the power of creating art in parallel with the use of multi-threading.
 
 <img src="images/crazy_museum.gif" width="1000" height="550" />
 
