@@ -1,9 +1,19 @@
 #include "painter.h"
 #include <iostream>
 #include <opencv2/imgproc.hpp>
+#include <future>
 
-Painter::Painter(const std::string & name):
-	_name(name){
+Painter::Painter(const std::string & name, const int skill):
+	_name(name),
+	_skill(skill){
+}
+
+int Painter::getSkill(){
+    return _skill;
+}
+
+std::string Painter::getName(){
+    return _name;
 }
 
 void Painter::setGallery(std::shared_ptr<Gallery> gallery){
@@ -21,21 +31,13 @@ void Painter::paint(){
     	// Wait between two cycles to relax CPU load
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-        int id =_current_gallery->waitToPaint();
-        std::cout << _name << " paints" << "\n";
-        _current_gallery->Paint(id, this);
+        // Wait to access gallery
+        int id =_current_gallery->waitForAccess();
+        // cv::Mat canvas = _current_gallery->permitAccess();
 
-        // request entry to the current intersection (using async)
-        // auto ftrEntryGranted = std::async(&Gallery::Draw, _current_gallery, id, get_shared_this());
 
-        // wait until entry has been granted
-        // ftrEntryGranted.get();
-
-        std::cout << _name << " painted " << id << "\n";
+        // Painter enters gallery and paints on canvas
+        _current_gallery->Paint(id, _skill, _name);
+        std::cout << _name << " painted canvas " << id << "\n";
     }
-}
-
-void Painter::drawStuff(cv::Mat m){
-
-	cv::circle(m, cv::Point(200 , 200 ), 30, cv::Scalar(255, 0, 0), CV_FILLED);
 }

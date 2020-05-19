@@ -1,11 +1,11 @@
-#include "major.h"
+#include "museum.h"
 #include <algorithm>
 
-Major::Major(){
+Museum::Museum(){
 
 }
 
-Major::~Major()
+Museum::~Museum()
 {
     // set up thread barrier before this object is destroyed
     std::for_each(_threads.begin(), _threads.end(), [](std::thread &t) {

@@ -31,22 +31,24 @@ void MessageQueue<T>::send(T &&msg)
 }
 
 Gallery::Gallery(const int num_canvases):
-    _num_canvases(num_canvases){
+    _num_canvases(num_canvases),
+    _canvas_width(500),
+    _canvas_height(500){
 
     for(int i = 0; i < _num_canvases; i++){
-        _canvases.push_back(cv::Mat(500, 500, CV_8UC3, cv::Scalar(255, 255, 255)));
+        _canvases.push_back(cv::Mat(_canvas_width, _canvas_height, CV_8UC3, 
+            cv::Scalar(255, 255, 255)));
     }
     _message_queue = std::make_shared<MessageQueue<int>>();
 }
 
-int Gallery::waitToPaint(){
+int Gallery::waitForAccess(){
 
     while (true) {
 
          // Wait between two cycles to relax CPU load
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
 
-        // _message_queue.get()->send(Shape::kCircle);
         int canvas_id = _message_queue.get()->receive();
         if(canvas_id >= 0){
             return canvas_id;
@@ -54,33 +56,75 @@ int Gallery::waitToPaint(){
     }
 }
 
-void Gallery::Paint(const int id, Painter * painter){
 
+void Gallery::Paint(const int id, const int skill, const std::string & name){
+
+    // Get crazy drawing parameters
     std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis_coord(0, 500);
+    std::uniform_int_distribution<> dis_coord(0, _canvas_width);
     std::uniform_int_distribution<> dis_rad(20, 60);
     std::uniform_int_distribution<> dis_color(0, 255);
-    int x  = dis_coord(gen);
-    int y  = dis_coord(gen);
+    int x1  = dis_coord(gen);
+    int y1  = dis_coord(gen);
+    int x2  = dis_coord(gen);
+    int y2  = dis_coord(gen);
     int rad = dis_rad(gen);
+    int rad2 = dis_rad(gen);
     int r = dis_color(gen);
     int g = dis_color(gen);
     int b = dis_color(gen);
-    std::cout << x << " " << y << " " << rad << " " << r << " " << g << " " << b << "\n";
+
+    cv::Point p1(x1 , y1);
+    cv::Point p2(x2 , y2);
+    cv::Scalar color(r, g, b);
+
+    // Lock canvas
     std::lock_guard<std::mutex> uLock(_mutex_canvas);
-    cv::circle(_canvases[id], cv::Point(x , y ), rad, cv::Scalar(r, g, b), CV_FILLED);
-}
 
-void Gallery::Draw(const int id, std::shared_ptr<Painter> painter){
+    // Draw depending on painters skill
+    switch(skill){
+        case 0:
+            cv::arrowedLine(_canvases[id], p1, p2, color, 3);
+            break;
+        case 1:
+            cv::circle(_canvases[id], p1, rad, color, CV_FILLED);
+            break;
+        case 2:
+            cv::rectangle(_canvases[id], p1, p2, color, CV_FILLED);
+            break;
+        case 3:
+            cv::ellipse(_canvases[id], p1, cv::Size(rad, rad2), 0.2, 0.5, 0.8, CV_FILLED);
+            break;
+        case 4:
+            cv::line(_canvases[id], p1, p2, color, 3);
+            break;
+        case 5:
+            cv::arrowedLine(_canvases[id], p1, p2, color, 1);
+            break;
+        case 6:
+            cv::circle(_canvases[id], p1, rad, color, 3);
+            break;
+        case 7:
+            cv::rectangle(_canvases[id], p1, p2, color, 3);
+            break;
+        case 8:
+            cv::ellipse(_canvases[id], p1, cv::Size(rad, rad2), 0.2, 0.5, 0.8, 3);
+            break;
+        case 9:
+            cv::line(_canvases[id], p1, p2, color, 1);
+            break;
+    }
 
-    // std::lock_guard<std::mutex> uLock(_mutex_canvas);
-    // painter->drawStuff(_canvases[id]);
-    // cv::circle(_canvases[id], cv::Point(200 , 200 ), 30, cv::Scalar(255, 0, 0), CV_FILLED);
+    // Sign canvas
+    cv::Point sign_1(_canvas_width * 0.55, _canvas_height * 0.9);
+    cv::Point sign_2(_canvas_width, _canvas_height);
+    cv::Point sign_3(_canvas_width * 0.57, _canvas_height * 0.97);
+    cv::rectangle(_canvases[id], sign_1, sign_2, cv::Scalar(200,200,200), CV_FILLED);
+    cv::putText(_canvases[id], name, sign_3, 2, 1, cv::Scalar(0, 0, 0));
 }
 
 void Gallery::simulate(){
-	std::cout << "Simulate" << "\n";
 	_threads.emplace_back(std::thread(&Gallery::accessCanvas, this));
 }
 
@@ -89,7 +133,7 @@ void Gallery::accessCanvas(){
 	std::cout << "accessCanvas" << "\n";
 	std::random_device rd;
     std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dis_time(10, 20);
+    std::uniform_int_distribution<> dis_time(100, 300);
     std::uniform_int_distribution<> dis_canvas(1, _num_canvases);
     double cycleDuration = dis_time(gen); // duration of a single simulation cycle in ms
 
@@ -105,8 +149,7 @@ void Gallery::accessCanvas(){
         // Timer to measure the time between two loop cycles
         long timeSinceLastUpdate = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - lastUpdate).count();
 
-    	// std::cout << "Loop " << timeSinceLastUpdate << " " << cycleDuration << "\n";
-        // When waiting long enough
+        // When waiting time is long enough
         if (timeSinceLastUpdate >= cycleDuration){
 
         	int msg = dis_canvas(gen) - 1;
@@ -126,7 +169,6 @@ void Gallery::accessCanvas(){
 }
 
 void Gallery::show(){
-    std::cout << "Show" << "\n";
 
     // Infinite loop
     while (true) {
